@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+const (
+	userAgent    = "delphgo/1.0 (https://github.com/Amitdvl/delphgo; read-only summarizer)"
+	maxFeedBytes = 2 << 20 // 2 MB
+	maxPageBytes = 8 << 20 // 8 MB
+	cdHost       = "https://www.chiefdelphi.com"
+)
+
 const defaultFeedURL = "https://www.chiefdelphi.com/latest.rss"
 
 // rssFeed mirrors the Discourse RSS XML structure.
@@ -38,7 +45,13 @@ func FetchFeed(feedURL string) ([]Topic, error) {
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(feedURL)
+	req, err := http.NewRequest(http.MethodGet, feedURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("building feed request: %w", err)
+	}
+	req.Header.Set("User-Agent", userAgent)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching feed: %w", err)
 	}
@@ -48,7 +61,7 @@ func FetchFeed(feedURL string) ([]Topic, error) {
 		return nil, fmt.Errorf("feed returned status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFeedBytes))
 	if err != nil {
 		return nil, fmt.Errorf("reading feed body: %w", err)
 	}
@@ -64,9 +77,15 @@ func parseFeed(data []byte) ([]Topic, error) {
 
 	topics := make([]Topic, 0, len(feed.Channel.Items))
 	for _, item := range feed.Channel.Items {
+		// Only accept links from the expected host to prevent poisoned-feed injection.
+		link := item.Link
+		if !strings.HasPrefix(link, cdHost+"/") {
+			link = ""
+		}
+
 		t := Topic{
 			Title:       item.Title,
-			Link:        item.Link,
+			Link:        link,
 			Author:      item.Creator,
 			Category:    item.Category,
 			Description: item.Description,

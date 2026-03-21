@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const maxWorkers = 20
+
 func main() {
 	// CLI flags
 	limit := flag.Int("limit", 30, "max number of topics to process")
@@ -82,6 +84,9 @@ func main() {
 
 	// Deep scrape if requested
 	if *deep && len(topics) > 0 {
+		if *workers > maxWorkers {
+			*workers = maxWorkers
+		}
 		fmt.Fprintf(os.Stderr, "Deep scraping %d topics (%d workers)...\n", len(topics), *workers)
 		topics = deepScrape(topics, *workers)
 	}
@@ -129,13 +134,18 @@ func deepScrape(topics []Topic, numWorkers int) []Topic {
 		go func() {
 			defer wg.Done()
 			for idx := range ch {
+				if topics[idx].Link == "" {
+					results <- result{index: idx}
+					continue
+				}
 				posts, rc, vc, lc, err := ScrapeTopic(topics[idx].Link)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "  warning: scrape failed for %q: %v\n", topics[idx].Title, err)
 					results <- result{index: idx}
-					continue
+				} else {
+					results <- result{index: idx, posts: posts, rc: rc, vc: vc, lc: lc}
 				}
-				results <- result{index: idx, posts: posts, rc: rc, vc: vc, lc: lc}
+				time.Sleep(200 * time.Millisecond) // polite rate limiting
 			}
 		}()
 	}

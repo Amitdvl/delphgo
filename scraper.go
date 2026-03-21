@@ -15,7 +15,13 @@ import (
 // div.crawler-post containers using Schema.org microdata.
 func ScrapeTopic(topicURL string) ([]Post, int, int, int, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(topicURL)
+	req, err := http.NewRequest(http.MethodGet, topicURL, nil)
+	if err != nil {
+		return nil, 0, 0, 0, fmt.Errorf("building topic request: %w", err)
+	}
+	req.Header.Set("User-Agent", userAgent)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, 0, 0, 0, fmt.Errorf("fetching topic: %w", err)
 	}
@@ -25,7 +31,7 @@ func ScrapeTopic(topicURL string) ([]Post, int, int, int, error) {
 		return nil, 0, 0, 0, fmt.Errorf("topic page returned status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxPageBytes))
 	if err != nil {
 		return nil, 0, 0, 0, fmt.Errorf("reading topic body: %w", err)
 	}

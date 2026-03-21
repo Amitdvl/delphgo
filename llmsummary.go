@@ -9,6 +9,8 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 )
 
+const llmTimeout = 5 * time.Minute
+
 const summaryModel = anthropic.ModelClaudeSonnet4_6
 
 // LLMSummary calls Claude Sonnet 4.6 to generate a high-quality Markdown
@@ -21,11 +23,14 @@ func LLMSummary(topics []Topic) (string, error) {
 
 	client := anthropic.NewClient() // reads ANTHROPIC_API_KEY from env
 
+	ctx, cancel := context.WithTimeout(context.Background(), llmTimeout)
+	defer cancel()
+
 	prompt := buildPrompt(topics)
 
-	stream := client.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
+	stream := client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
 		Model:     summaryModel,
-		MaxTokens: 4096,
+		MaxTokens: 8192,
 		System: []anthropic.TextBlockParam{
 			{Text: "You are an expert summarizer of robotics engineering discussions. " +
 				"You read Chief Delphi forum activity and produce concise, high-signal Markdown summaries. " +
