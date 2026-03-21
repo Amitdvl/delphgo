@@ -21,7 +21,7 @@ Set your Anthropic API key to enable AI-powered summaries:
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without it, delphgo automatically falls back to rule-based summaries. No other configuration is required.
+Without it, delphgo automatically falls back to rule-based summaries. No other configuration is required. (not recommended)
 
 ## Usage
 
