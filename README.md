@@ -1,6 +1,7 @@
 # Delphgo
 
 *Usage examples:*
+
 ./delphgo                              # summarize latest 30 topics
 ./delphgo --deep --limit 10            # deep scrape top 10 with replies
 ./delphgo --category Programming       # filter to Programming category
