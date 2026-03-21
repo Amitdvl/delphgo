@@ -1,0 +1,13 @@
+# Binary
+delphgo
+
+# Go build artifacts
+*.test
+*.out
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
