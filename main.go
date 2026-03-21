@@ -17,6 +17,7 @@ func main() {
 	since := flag.String("since", "", "only topics from the last duration (e.g., 24h, 72h, 168h)")
 	tags := flag.String("tags", "", "comma-separated tags to filter by")
 	deep := flag.Bool("deep", false, "fetch individual topic pages for richer content")
+	noLLM := flag.Bool("no-llm", false, "use rule-based summary instead of Claude Sonnet 4.6 (no API key needed)")
 	output := flag.String("output", "", "write output to file (default: stdout)")
 	feedURL := flag.String("feed-url", defaultFeedURL, "RSS feed URL")
 	workers := flag.Int("workers", 5, "number of concurrent scrapers for --deep mode")
@@ -24,15 +25,16 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "delphgo — Chief Delphi activity reader and summarizer\n\n")
 		fmt.Fprintf(os.Stderr, "Usage: delphgo [flags]\n\n")
+		fmt.Fprintf(os.Stderr, "Requires ANTHROPIC_API_KEY for AI summaries (default). Use --no-llm to skip.\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
-		fmt.Fprintf(os.Stderr, "  delphgo                          # summarize latest topics\n")
-		fmt.Fprintf(os.Stderr, "  delphgo --deep                   # include reply/engagement data\n")
+		fmt.Fprintf(os.Stderr, "  delphgo                          # AI summary of latest topics\n")
+		fmt.Fprintf(os.Stderr, "  delphgo --deep                   # include reply content in AI summary\n")
 		fmt.Fprintf(os.Stderr, "  delphgo --category Technical     # filter to Technical category\n")
-		fmt.Fprintf(os.Stderr, "  delphgo --keyword swerve --deep  # search for swerve topics\n")
+		fmt.Fprintf(os.Stderr, "  delphgo --keyword swerve --deep  # search + deep scrape\n")
 		fmt.Fprintf(os.Stderr, "  delphgo --since 24h              # last 24 hours only\n")
-		fmt.Fprintf(os.Stderr, "  delphgo --output summary.md      # write to file\n")
+		fmt.Fprintf(os.Stderr, "  delphgo --no-llm --output out.md # rule-based summary, no API key needed\n")
 	}
 	flag.Parse()
 
@@ -85,7 +87,17 @@ func main() {
 	}
 
 	// Generate summary
-	md := GenerateSummary(topics)
+	var md string
+	if *noLLM {
+		md = GenerateSummary(topics)
+	} else {
+		fmt.Fprintf(os.Stderr, "Generating AI summary with Claude Sonnet 4.6...\n")
+		md, err = LLMSummary(topics)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "LLM summary failed (%v), falling back to rule-based summary.\n", err)
+			md = GenerateSummary(topics)
+		}
+	}
 
 	// Output
 	if *output != "" {
