@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	userAgent    = "delphgo/1.0 (https://github.com/Amitdvl/delphgo; read-only summarizer)"
+	userAgent    = "delphgo/1.0 (read-only summarizer)"
 	maxFeedBytes = 2 << 20 // 2 MB
 	maxPageBytes = 8 << 20 // 8 MB
 	cdHost       = "https://www.chiefdelphi.com"

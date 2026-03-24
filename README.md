@@ -6,7 +6,7 @@ A read-only Go CLI that fetches and summarizes [Chief Delphi](https://www.chiefd
 ## Install
 
 ```bash
-git clone https://github.com/Amitdvl/delphgo.git
+git clone <repo-url>
 cd delphgo
 go build -o delphgo .
 ```
